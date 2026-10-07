@@ -169,23 +169,29 @@ select {
   min-width: 0;
 }
 .example-picker {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
   min-width: 0;
   font-size: 13px;
   color: var(--muted);
 }
 .example-picker label {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  z-index: 1;
+  transform: translateY(-50%);
   white-space: nowrap;
+  pointer-events: none;
 }
 .example-picker select {
   appearance: none;
   min-width: 0;
-  max-width: 210px;
+  max-width: 270px;
   border: 1px solid #cbd4cd;
   border-radius: 5px;
-  padding: 6px 34px 6px 10px;
+  padding: 6px 34px 6px 72px;
   background: #fff
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%2339473e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     no-repeat right 10px center / 16px 16px;
