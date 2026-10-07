@@ -14,7 +14,7 @@
   <body>
     <header class="masthead">
       <a class="brand" href="./">Bombadil Sandbox</a>
-      <div class="example-picker">
+      <div class="header-actions">
         <button
           id="start-tour"
           class="quiet tour-trigger"
@@ -25,14 +25,17 @@
         >
           Tour
         </button>
-        <select
-          id="example-choice"
-          aria-label="Example"
-          title="Load an example at its initial state. Behavior and test edits are kept for each example; switching clears the timeline."
-          disabled
-        >
-          <option value="persistence">Reload persistence</option>
-        </select>
+        <div class="example-picker">
+          <label for="example-choice">Example</label>
+          <select
+            id="example-choice"
+            aria-label="Example"
+            title="Choose a todo example. Each loads an app with a bug and its test."
+            disabled
+          >
+            <option value="persistence">Reload persistence</option>
+          </select>
+        </div>
         <a
           class="github-link"
           href="https://github.com/aranke/bombadil-sandbox"

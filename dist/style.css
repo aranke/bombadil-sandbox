@@ -12,6 +12,7 @@
   --muted: #727974;
   --line: #e1e5e2;
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --masthead-height: 48px;
 }
 * {
   box-sizing: border-box;
@@ -34,7 +35,7 @@ select {
   outline-offset: -2px;
 }
 .masthead {
-  height: 48px;
+  height: var(--masthead-height);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -49,7 +50,7 @@ select {
   font-weight: 600;
   text-decoration: none;
 }
-.example-picker .tour-trigger {
+.header-actions .tour-trigger {
   font-size: 13px;
 }
 .github-link {
@@ -160,29 +161,44 @@ select {
 .tour-next {
   margin-left: auto;
 }
-.example-picker {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-left: auto;
   min-width: 0;
+}
+.example-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: 13px;
   color: var(--muted);
 }
+.example-picker label {
+  white-space: nowrap;
+}
 .example-picker select {
+  appearance: none;
   min-width: 0;
   max-width: 210px;
-  border: 1px solid var(--line);
+  border: 1px solid #cbd4cd;
   border-radius: 5px;
-  padding: 5px 8px;
-  background: #fff;
+  padding: 6px 34px 6px 10px;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%2339473e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 16px 16px;
   color: #39473e;
   font-size: 13px;
+}
+.example-picker select:hover:not(:disabled) {
+  border-color: #729b80;
 }
 .workspace {
   display: grid;
   grid-template-columns: var(--pane-columns, 35fr 6px 32.5fr 6px 32.5fr);
-  height: calc(100dvh - 48px);
+  height: calc(100dvh - var(--masthead-height));
   min-height: 0;
 }
 .pane {
@@ -514,7 +530,7 @@ select {
   .workspace {
     grid-template-columns: 1fr 1fr;
     height: auto;
-    min-height: calc(100dvh - 48px);
+    min-height: calc(100dvh - var(--masthead-height));
   }
   .behaviors-pane,
   .tests-pane {
@@ -522,18 +538,41 @@ select {
   }
   .output-pane {
     grid-column: 1 / -1;
-    height: calc(100dvh - 48px);
+    height: calc(100dvh - var(--masthead-height));
     min-height: 0;
     border-left: 0 !important;
     border-top: 1px solid var(--line);
   }
 }
 @media (max-width: 650px) {
+  :root {
+    --masthead-height: 84px;
+  }
   .masthead {
-    padding: 0 12px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: 32px 32px;
+    gap: 4px 8px;
+    padding: 8px 12px;
+  }
+  .header-actions {
+    display: contents;
+  }
+  .tour-trigger {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .github-link {
+    grid-column: 3;
+    grid-row: 1;
   }
   .example-picker {
-    gap: 8px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .example-picker select {
+    flex: 1;
+    max-width: none;
   }
   .workspace {
     grid-template-columns: 1fr;
