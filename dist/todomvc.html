@@ -1,0 +1,210 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; style-src 'unsafe-inline'; worker-src blob:; connect-src 'none'; img-src data:; form-action 'none'; base-uri 'none'"></head><body><style>
+*{box-sizing:border-box}body{margin:0;background:transparent}#todoapp{padding:1px;font:16px system-ui,sans-serif;color:#262b28;background:transparent}h1{font:28px system-ui,sans-serif;font-weight:400;letter-spacing:-1px;margin:0 0 20px}form{margin:0}.new-todo{padding:12px 0;width:100%;border:0;border-bottom:1px solid #e5e8e6;background:transparent;border-radius:0;font:14px system-ui}.new-todo::placeholder{color:#727974}.todo-list{list-style:none;padding:0;margin:0;max-height:180px;overflow:auto}li{padding:12px 0;border-bottom:1px solid #e5e8e6;display:flex;gap:8px;align-items:center}li[hidden]{display:none}label{display:flex;align-items:center;gap:10px;flex:1;min-width:0}.todo-text{overflow-wrap:anywhere}input[type=checkbox]{width:17px;height:17px;accent-color:#526e59;flex-shrink:0;margin:0}input:checked+.todo-text{text-decoration:line-through;color:#929a94}.delete{border:0;background:none;color:#929a94;font-size:20px;cursor:pointer}footer{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;font-size:12px;color:#727974}nav{display:flex;gap:6px}nav button{font:12px system-ui;border:0;padding:4px 2px;background:none;color:inherit;cursor:pointer}nav button[aria-pressed=true]{color:#262b28;text-decoration:underline;text-underline-offset:4px}.todo-count strong{font-weight:400}:focus-visible{outline:2px solid #6a8977;outline-offset:2px}li[data-changed]{background:#fff0eb;box-shadow:inset 3px 0 #b0372f;padding-left:9px}li[data-changed] .todo-text{color:#922b25}
+</style><section id="todoapp" aria-label="Todo application"></section><script>const todoMarkup = function todoMarkup({ todos, filter, visibleIds, remaining }, changed = []) {
+  const escape = (s) => s.replace(
+    /[&<>"']/g,
+    (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[c]
+  );
+  return `<h1>todos</h1><form><input class="new-todo" placeholder="What would you like to do?" aria-label="New todo" maxlength="100" autocomplete="off"></form><ul class="todo-list" tabindex="0" aria-label="Todos">${todos.map((t) => `<li data-id="${t.id}" ${changed.includes(t.id) ? 'data-changed="true" title="Related to this failure"' : ""} ${!visibleIds.includes(t.id) ? "hidden" : ""}><label><input type="checkbox" ${t.completed ? "checked" : ""} aria-label="Complete ${escape(t.text)}"><span class="todo-text">${escape(t.text)}</span></label><button class="delete" aria-label="Delete ${escape(t.text)}">\xD7</button></li>`).join("")}</ul><footer><span class="todo-count"><strong>${remaining}</strong> left</span><nav aria-label="Todo filter">${["all", "active", "completed"].map((f) => `<button data-filter="${f}" aria-pressed="${f === filter}">${f[0].toUpperCase() + f.slice(1)}</button>`).join("")}</nav></footer>`;
+}; (function applicationFrame(workerSource) {
+  let view;
+  let lastAction = null, manual = false;
+  let pending = Promise.resolve();
+  let runtimeError = "";
+  let worker;
+  let serial = 0;
+  const requests = /* @__PURE__ */ new Map();
+  const root = document.getElementById("todoapp");
+  function stopWorker(error) {
+    worker?.terminate();
+    for (const request of requests.values()) {
+      clearTimeout(request.timer);
+      request.reject(error);
+    }
+    requests.clear();
+  }
+  function startWorker() {
+    stopWorker(Error("App restarted"));
+    const url = URL.createObjectURL(
+      new Blob([workerSource], { type: "text/javascript" })
+    );
+    worker = new Worker(url);
+    URL.revokeObjectURL(url);
+    worker.onmessage = ({ data }) => {
+      const request = requests.get(data.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      requests.delete(data.id);
+      if (data.error) request.reject(Error(data.error));
+      else request.resolve(data.result);
+    };
+    worker.onerror = (event) => stopWorker(Error(event.message));
+  }
+  function requestBehavior(kind, data) {
+    const id = ++serial;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () => stopWorker(
+          Error("App code took too long to run. Check for an infinite loop.")
+        ),
+        700
+      );
+      requests.set(id, { resolve, reject, timer });
+      worker.postMessage({ id, kind, ...data });
+    });
+  }
+  function validTodos(value) {
+    return Array.isArray(value) && value.length <= 1e3 && value.every(
+      (t) => t && Number.isSafeInteger(t.id) && t.id > 0 && typeof t.text === "string" && typeof t.completed === "boolean"
+    ) && new Set(value.map((t) => t.id)).size === value.length;
+  }
+  function acceptResult(result) {
+    const candidate = result.view;
+    if (!candidate || !validTodos(candidate.todos) || !Array.isArray(candidate.visibleIds) || candidate.visibleIds.some(
+      (id) => !Number.isSafeInteger(id) || !candidate.todos.some((todo) => todo.id === id)
+    ) || new Set(candidate.visibleIds).size !== candidate.visibleIds.length || !Number.isSafeInteger(candidate.remaining) || !["all", "active", "completed"].includes(candidate.filter))
+      throw Error(
+        "view() must return valid todos, visibleIds drawn from those todos, an integer remaining count, and an all/active/completed filter."
+      );
+    view = candidate;
+    if (result.savedChanged)
+      parent.postMessage({ event: "storage", value: result.saved }, "*");
+    render();
+  }
+  async function applyBehavior(action2) {
+    acceptResult(await requestBehavior("action", { action: action2 }));
+  }
+  function track(promise) {
+    pending = promise.catch((error) => {
+      runtimeError = error.message;
+      if (manual)
+        parent.postMessage(
+          { event: "manual-error", error: error.message },
+          "*"
+        );
+      throw error;
+    });
+    pending.catch(() => {
+    });
+  }
+  function render() {
+    root.innerHTML = todoMarkup(view);
+    root.querySelector("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = root.querySelector(".new-todo");
+      track(applyBehavior({ type: "add", text: input.value }));
+    });
+    root.querySelectorAll("li input").forEach(
+      (el) => el.addEventListener(
+        "change",
+        () => track(
+          applyBehavior({
+            type: "toggle",
+            id: Number(el.closest("li").dataset.id)
+          })
+        )
+      )
+    );
+    root.querySelectorAll(".delete").forEach(
+      (el) => el.onclick = () => {
+        track(
+          applyBehavior({
+            type: "delete",
+            id: Number(el.closest("li").dataset.id)
+          })
+        );
+      }
+    );
+    root.querySelectorAll("[data-filter]").forEach(
+      (el) => el.onclick = () => {
+        track(applyBehavior({ type: "filter", filter: el.dataset.filter }));
+      }
+    );
+    parent.postMessage({ event: "resize", height: root.scrollHeight + 4 }, "*");
+  }
+  function observe() {
+    const rows = [...root.querySelectorAll("li")];
+    const read = (el) => ({
+      id: Number(el.dataset.id),
+      text: el.querySelector(".todo-text").textContent,
+      completed: el.querySelector("input").checked
+    });
+    return {
+      ready: !!root.querySelector(".new-todo"),
+      todos: rows.map(read),
+      visible: rows.filter((el) => !el.hidden).map(read),
+      remaining: Number(root.querySelector(".todo-count strong").textContent),
+      filter: root.querySelector(
+        '[data-filter][aria-pressed="true"]'
+      ).dataset.filter,
+      lastAction
+    };
+  }
+  async function action(a) {
+    runtimeError = "";
+    lastAction = a;
+    if (a.type === "add") {
+      const input = root.querySelector(".new-todo");
+      input.focus();
+      input.value = a.text;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      root.querySelector("form").requestSubmit();
+    } else if (a.type === "toggle" || a.type === "delete") {
+      const row = root.querySelector(
+        `li[data-id="${Number(a.id)}"]`
+      );
+      if (!row || row.hidden)
+        throw Error(
+          "The recorded step cannot run because its todo is no longer visible."
+        );
+      row.querySelector(a.type === "toggle" ? "input" : ".delete").click();
+    } else if (a.type === "filter") {
+      const el = root.querySelector(
+        `[data-filter="${a.filter}"]`
+      );
+      if (!el) throw Error("Unsupported filter");
+      el.click();
+    } else if (a.type !== "wait") throw Error("Unsupported action");
+    await pending;
+    if (runtimeError) throw Error(runtimeError);
+  }
+  window.addEventListener("message", async (event) => {
+    if (event.source !== parent || !event.data.kind) return;
+    const { id, kind, ...data } = event.data;
+    try {
+      let result;
+      if (kind === "init") {
+        lastAction = data.lastAction ?? null;
+        manual = !!data.manual;
+        runtimeError = "";
+        pending = Promise.resolve();
+        startWorker();
+        acceptResult(
+          await requestBehavior("init", {
+            code: data.code,
+            saved: data.saved ?? null
+          })
+        );
+        result = observe();
+      } else if (kind === "action") {
+        await action(data.action);
+        result = observe();
+      } else if (kind === "observe") result = observe();
+      else throw Error("Unknown application request");
+      parent.postMessage({ id, result }, "*");
+    } catch (error) {
+      parent.postMessage(
+        { id, error: error instanceof Error ? error.message : String(error) },
+        "*"
+      );
+    }
+  });
+})("(function applicationWorker() {\n  let app;\n  let saved = null;\n  let savedChanged = false;\n  self.onmessage = ({ data }) => {\n    try {\n      savedChanged = false;\n      if (data.kind === \"init\") {\n        saved = structuredClone(data.saved);\n        const factory = new Function(\n          `\"use strict\";\n${data.code}\n;return createApp;`\n        )();\n        app = factory({\n          load: () => structuredClone(saved),\n          save: (value) => {\n            saved = structuredClone(value);\n            savedChanged = true;\n          }\n        });\n        if (!app || typeof app.view !== \"function\")\n          throw Error(\"createApp(storage) must return handlers and view().\");\n        for (const name of [\"onAdd\", \"onToggle\", \"onDelete\", \"onFilter\"])\n          if (typeof app[name] !== \"function\")\n            throw Error(`createApp(storage) must return ${name}().`);\n      } else {\n        const action = data.action;\n        let result;\n        switch (action.type) {\n          case \"add\":\n            result = app.onAdd(action.text);\n            break;\n          case \"toggle\":\n            result = app.onToggle(action.id);\n            break;\n          case \"delete\":\n            result = app.onDelete(action.id);\n            break;\n          case \"filter\":\n            result = app.onFilter(action.filter);\n            break;\n          default:\n            throw Error(\"Unsupported app step\");\n        }\n        if (result?.then) throw Error(\"App handlers must be synchronous.\");\n      }\n      self.postMessage({\n        id: data.id,\n        result: { view: app.view(), savedChanged, saved }\n      });\n    } catch (error) {\n      self.postMessage({\n        id: data.id,\n        error: error instanceof Error ? error.message : String(error)\n      });\n    }\n  };\n})();");</script><script>const code=new URL(location.href).searchParams.has('fixed')?"function createApp(storage) {\n  const initialTodos = [\n    { id: 1, text: \"Plant something green\", completed: false },\n    { id: 2, text: \"Take the long way home\", completed: true },\n  ];\n  let todos = storage.load() ?? initialTodos;\n  let filter = \"all\";\n\n  function persist() {\n    storage.save(todos);\n  }\n\n  function onToggle(id) {\n    const todo = todos.find(todo => todo.id === id);\n    todo.completed = !todo.completed;\n    persist();\n  }\n\n  function onAdd(text) {\n    text = text.trim();\n    if (!text) return;\n    const id = Math.max(0, ...todos.map(todo => todo.id)) + 1;\n    todos.push({ id, text, completed: false });\n    persist();\n  }\n\n  function onDelete(id) {\n    todos = todos.filter(todo => todo.id !== id);\n    persist();\n  }\n\n  function onFilter(value) {\n    filter = value;\n  }\n\n  function visibleTodos() {\n    return todos.filter(todo =>\n      filter === \"all\" ||\n      todo.completed === (filter === \"completed\")\n    );\n  }\n\n  function remainingCount() {\n    return todos.filter(todo => !todo.completed).length;\n  }\n\n  function view() {\n    return {\n      todos,\n      visibleIds: visibleTodos().map(todo => todo.id),\n      remaining: remainingCount(),\n      filter,\n    };\n  }\n\n  return { onAdd, onToggle, onDelete, onFilter, view };\n}":"function createApp(storage) {\n  const initialTodos = [\n    { id: 1, text: \"Plant something green\", completed: false },\n    { id: 2, text: \"Take the long way home\", completed: true },\n  ];\n  let todos = storage.load() ?? initialTodos;\n  let filter = \"all\";\n\n  function persist() {\n    storage.save(todos);\n  }\n\n  function onToggle(id) {\n    const todo = todos.find(todo => todo.id === id);\n    todo.completed = !todo.completed;\n  }\n\n  function onAdd(text) {\n    text = text.trim();\n    if (!text) return;\n    const id = Math.max(0, ...todos.map(todo => todo.id)) + 1;\n    todos.push({ id, text, completed: false });\n    persist();\n  }\n\n  function onDelete(id) {\n    todos = todos.filter(todo => todo.id !== id);\n    persist();\n  }\n\n  function onFilter(value) {\n    filter = value;\n  }\n\n  function visibleTodos() {\n    return todos.filter(todo =>\n      filter === \"all\" ||\n      todo.completed === (filter === \"completed\")\n    );\n  }\n\n  function remainingCount() {\n    return todos.filter(todo => !todo.completed).length;\n  }\n\n  function view() {\n    return {\n      todos,\n      visibleIds: visibleTodos().map(todo => todo.id),\n      remaining: remainingCount(),\n      filter,\n    };\n  }\n\n  return { onAdd, onToggle, onDelete, onFilter, view };\n}";
+  window.addEventListener('message',event=>{if(event.source===window&&event.data.event==='storage')localStorage.setItem('bombadil-todos',JSON.stringify(event.data.value));});
+  window.postMessage({id:1,kind:'init',saved:JSON.parse(localStorage.getItem('bombadil-todos')||'null'),code,manual:true},'*');</script></body></html>

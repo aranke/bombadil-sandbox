@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A client-side Bombadil Sandbox for editing tests, running steps, and inspecting app states."
+    />
+    <title>Bombadil Sandbox</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=bs" />
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="./">Bombadil Sandbox</a>
+      <div class="example-picker">
+        <button
+          id="start-tour"
+          class="quiet tour-trigger"
+          aria-label="Start guided tour"
+          aria-haspopup="dialog"
+          title="Take a quick tour of the sandbox"
+          disabled
+        >
+          Tour
+        </button>
+        <select
+          id="example-choice"
+          aria-label="Example"
+          title="Load an example at its initial state. Behavior and test edits are kept for each example; switching clears the timeline."
+          disabled
+        >
+          <option value="persistence">Reload persistence</option>
+        </select>
+      </div>
+    </header>
+    <main id="app">
+      <section class="boot">
+        <p>Loading playground…</p>
+        <noscript
+          >This playground needs JavaScript and WebAssembly enabled.</noscript
+        >
+      </section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

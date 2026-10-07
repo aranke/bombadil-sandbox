@@ -1,0 +1,9 @@
+[package]
+name = "stdx"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+# Upstream's tree tests depend on its full Hegel workspace.
+test = false
+doctest = false
