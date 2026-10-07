@@ -51,7 +51,7 @@ npm run test:browser
 
 The browser suite uses installed Google Chrome locally and Playwright Chromium in CI. Screenshots are saved in `test-results/` and should not be committed.
 
-For changes to evaluator integration or exported specifications, also run the native compatibility check with the official Bombadil 0.7.5 executable:
+For changes to evaluator integration or exported specifications, also run the native compatibility check with the official Bombadil 0.7.8 executable:
 
 ```sh
 BOMBADIL_BIN=/path/to/bombadil npm run test:native

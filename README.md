@@ -50,7 +50,7 @@ npm test
 cargo test --locked -p bombadil-sandbox-runtime
 ```
 
-With the local server running, use `npm run test:browser` for the browser suite. It uses installed Google Chrome on macOS and Playwright Chromium in CI. The optional `npm run test:native` check requires the official Bombadil 0.7.5 executable; set `BOMBADIL_BIN` to its path.
+With the local server running, use `npm run test:browser` for the browser suite. It uses installed Google Chrome on macOS and Playwright Chromium in CI. The optional `npm run test:native` check requires the official Bombadil 0.7.8 executable; set `BOMBADIL_BIN` to its path.
 
 Pushing to `main` builds and publishes `dist/` through GitHub Pages. Tests run in a separate workflow.
 

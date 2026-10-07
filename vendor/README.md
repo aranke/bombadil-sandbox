@@ -1,7 +1,8 @@
 # Pinned Bombadil source
 
 Source: https://github.com/antithesishq/bombadil
-Commit: b8bc4a658abc5933c84d1afb9fff1ce24e05520f (2026-09-14).
+Release: [Bombadil 0.7.8](https://github.com/antithesishq/bombadil/releases/tag/v0.7.8).
+Commit: 0ca926a778966bb5cba2d59ed68da3318b12ded9 (2026-10-01).
 
 `bombadil-ltl/src/{eval,formula,syntax,stop,violation}.rs` are unchanged upstream files.
 The local crate manifest/lib entrypoint omit workspace integration and upstream test modules.

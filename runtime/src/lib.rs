@@ -459,6 +459,62 @@ mod tests {
         assert_eq!(second["invariant"]["violation"]["cause"]["time"], 100);
     }
     #[test]
+    fn vacuous_transitions_keep_bounded_obligations_and_detect_later_failures() {
+        let mut run = Run::default();
+        run.init(BTreeMap::from([(
+            "transition".into(),
+            formula(json!({
+                "op": "always", "bound": null,
+                "child": {
+                    "op": "implies",
+                    "left": {"op": "thunk", "id": 0},
+                    "right": {"op": "next", "child": {"op": "thunk", "id": 1}},
+                },
+            })),
+        )]));
+        // Trigger one next-state obligation, then leave the antecedent false.
+        // Older evaluators duplicated the outer always obligation on every step.
+        for time in 0..=1000 {
+            let result = run
+                .step(time, &mut |predicate, _| {
+                    Ok((
+                        Formula::Pure {
+                            value: predicate.id == 1 || time == 0,
+                            pretty: "transition condition".into(),
+                        },
+                        Snapshots::default(),
+                    ))
+                })
+                .unwrap();
+            assert_eq!(result["transition"]["status"], "pending");
+            let Some(Evaluation::Residual(residual)) = &run.properties["transition"].value else {
+                panic!("Expected an unfinished invariant");
+            };
+            assert!(
+                residual.size().nodes <= 8,
+                "Obligations grew at step {time}"
+            );
+        }
+        // A newly triggered obligation must still fail at the following step.
+        for time in 1001..=1002 {
+            let result = run
+                .step(time, &mut |_, _| {
+                    Ok((
+                        Formula::Pure {
+                            value: time == 1001,
+                            pretty: "transition condition".into(),
+                        },
+                        Snapshots::default(),
+                    ))
+                })
+                .unwrap();
+            assert_eq!(
+                result["transition"]["status"],
+                if time == 1001 { "pending" } else { "violation" },
+            );
+        }
+    }
+    #[test]
     fn timestamps_cannot_go_backward() {
         let mut run = Run::default();
         run.step(10, &mut |_, _| unreachable!()).unwrap();

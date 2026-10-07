@@ -4,14 +4,25 @@ version = 4
 
 [[package]]
 name = "bombadil-ltl"
-version = "0.0.0"
+version = "0.7.8"
 dependencies = [
  "hotpath",
 ]
 
 [[package]]
+name = "bombadil-sandbox-runtime"
+version = "0.1.0"
+dependencies = [
+ "bombadil-ltl",
+ "bombadil-schema",
+ "serde",
+ "serde_json",
+ "stdx",
+]
+
+[[package]]
 name = "bombadil-schema"
-version = "0.0.0"
+version = "0.7.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -44,17 +55,6 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
-
-[[package]]
-name = "bombadil-sandbox-runtime"
-version = "0.1.0"
-dependencies = [
- "bombadil-ltl",
- "bombadil-schema",
- "serde",
- "serde_json",
- "stdx",
-]
 
 [[package]]
 name = "proc-macro2"
@@ -119,7 +119,7 @@ dependencies = [
 
 [[package]]
 name = "stdx"
-version = "0.0.0"
+version = "0.7.8"
 
 [[package]]
 name = "syn"

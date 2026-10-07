@@ -644,7 +644,7 @@ const exportTrace = () =>
     JSON.stringify(
       {
         format: "bombadil-sandbox/1",
-        engineCommit: "b8bc4a658abc5933c84d1afb9fff1ce24e05520f",
+        engineCommit: "0ca926a778966bb5cba2d59ed68da3318b12ded9",
         seed: runSeed,
         viewport: { width: innerWidth, height: innerHeight },
         initialTodos: entries[0]?.observation.todos ?? [],
