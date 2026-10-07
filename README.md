@@ -65,3 +65,5 @@ This app uses a small todo fixture and a dedicated action driver. For the vendor
 ## Credits
 
 Built around [Bombadil](https://github.com/antithesishq/bombadil), with teaching examples adapted from [Oskar Wickström's TodoMVC specification](https://github.com/owickstrom/bombadil-playground/blob/73202e6269b06cbf945c5a4735ca9fa47c4c7ab0/todomvc/todomvc.ts). This is an independent sandbox, not an official Bombadil distribution.
+
+Licensed under [MIT](LICENSE). Vendored Bombadil code retains its copyright notice in [vendor/LICENCE](vendor/LICENCE).
