@@ -54,6 +54,8 @@ With the local server running, use `npm run test:browser` for the browser suite.
 
 Pushing to `main` builds and publishes `dist/` through GitHub Pages. Tests run in a separate workflow.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and pull request checks.
+
 ## How it works
 
 The sandbox runs entirely in the browser. CodeMirror provides the editors; isolated frames and workers execute the editable code. Bombadil's upstream Rust temporal-logic evaluator runs as WebAssembly. Short failure explanations accompany reports produced by Bombadil's own renderer.
