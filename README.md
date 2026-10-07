@@ -1,5 +1,7 @@
 # Bombadil Sandbox
 
+[Open the sandbox](https://aranke.github.io/bombadil-sandbox/).
+
 A fully client-side playground for property-based UI testing. Run a small TodoMVC-style app, edit tests and application behaviors, and inspect the timeline or replay its steps.
 
 Built for [Bombadil issue #231](https://github.com/antithesishq/bombadil/issues/231). This is a standalone prototype, not an official Bombadil distribution.

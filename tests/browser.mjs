@@ -16,6 +16,14 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 page.setDefaultTimeout(15000);
+// Set up the subpath host before loading workers. Enabling interception later
+// can stall Chromium while attaching to already-running sandbox frames.
+await page.route("**/nested/**", async (route) => {
+  const response = await route.fetch({
+    url: route.request().url().replace("/nested/", "/"),
+  });
+  await route.fulfill({ response });
+});
 // A mock registry tests the optional tool contract, not browser WebMCP support.
 await page.addInitScript(() => {
   window.testTools = {};
@@ -56,8 +64,7 @@ const scrub = async (value) => {
 try {
   await page.goto("http://127.0.0.1:4173");
   await page.waitForFunction(
-    () =>
-      window.bombadilSandbox && !window.bombadilSandbox.getState().busy,
+    () => window.bombadilSandbox && !window.bombadilSandbox.getState().busy,
     {},
     { timeout: 10000 },
   );
@@ -78,7 +85,6 @@ try {
   await page.reload();
   await idle();
   assert.equal(await firstVisitTour.isVisible(), false);
-  console.log("Browser checks: first-visit tour and persistence passed");
   const toolNames = await page.evaluate(() => Object.keys(window.testTools));
   assert.deepEqual(toolNames.sort(), [
     "read_playground_state",
@@ -489,9 +495,7 @@ try {
   assert.equal(await page.locator("#new-run").isDisabled(), true);
   // A broken test in one example must not block another example.
   await page.locator("#property-source .cm-content").fill("always(() => )");
-  await page.waitForFunction(
-    () => !!window.bombadilSandbox.getState().error,
-  );
+  await page.waitForFunction(() => !!window.bombadilSandbox.getState().error);
   await page.locator("#example-choice").selectOption("count");
   await idle();
   await page.locator("#reload-app").click();
@@ -501,9 +505,7 @@ try {
     "count",
   ]);
   await page.locator("#example-choice").selectOption("persistence");
-  await page.waitForFunction(
-    () => !!window.bombadilSandbox.getState().error,
-  );
+  await page.waitForFunction(() => !!window.bombadilSandbox.getState().error);
   await page.locator("#property-source .cm-content").fill(persistenceSource);
   await idle();
   await page.locator("#reset-app").click();
@@ -680,7 +682,6 @@ try {
   const toolResult = await page.evaluate(() =>
     window.testTools.run_guided_example.execute({}),
   );
-  console.log("Browser checks: editor, replay and error recovery passed");
   assert.equal(toolResult.actions, 3);
   assert.equal(toolResult.error, "");
   const readBack = await page.evaluate(() =>
@@ -725,7 +726,6 @@ try {
   assert.equal(await page.locator("#recorded-app footer").isVisible(), true);
   assert.equal(await page.locator("#recorded-app .new-todo").isVisible(), true);
   await page.screenshot({ path: "test-results/mobile.png", fullPage: true });
-  console.log("Browser checks: mobile preview passed");
   const editsBeforeNewRun = (await state()).code;
   // Continuing must append to manual history, not reset the app or evaluator.
   await todoInput.fill("Keep my manual setup");
@@ -768,8 +768,7 @@ try {
   const stoppedHistory = continued;
   await page.locator("#new-run").click();
   await page.waitForFunction(
-    (length) =>
-      window.bombadilSandbox.getState().entries.length >= length + 2,
+    (length) => window.bombadilSandbox.getState().entries.length >= length + 2,
     stoppedHistory.length,
   );
   await page.locator("#run").click();
@@ -842,23 +841,18 @@ try {
     fullPage: true,
   });
   const downloadPromise = page.waitForEvent("download");
-  console.log("Browser checks: long mobile timeline passed");
   await page.evaluate(() => window.bombadilSandbox.exportTrace());
   assert.equal(
     (await downloadPromise).suggestedFilename(),
     "bombadil-sandbox-trace.json",
   );
   // Failure and historical states freeze controls, but must still scroll.
-  console.log("Browser checks: preparing overflow history");
   await page.locator('#recorded-app [data-filter="all"]').click();
   await idle();
   while ((await state()).entries.at(-1).observation.todos.length < 24) {
     const priorCount = (await state()).entries.at(-1).observation.todos.length;
-    console.log("Overflow todos", priorCount);
     await todoInput.fill("Overflow check");
-    console.log("Overflow input filled");
     await todoInput.press("Enter");
-    console.log("Overflow input submitted");
     await idle();
     assert.ok(
       (await state()).entries.at(-1).observation.todos.length > priorCount,
@@ -866,15 +860,12 @@ try {
     );
   }
   // Keep an identical, scrollable All snapshot immediately before the failure.
-  console.log("Browser checks: overflow history prepared");
   await page.locator('#recorded-app [data-filter="all"]').click();
   await idle();
-  console.log("Browser checks: overflow filter selected");
   await page
     .locator("#property-source .cm-content")
     .fill("always(() => false)");
   await idle();
-  console.log("Browser checks: overflow test changed");
   assert.equal(
     (await state()).entries.at(-1).results.persistence.status,
     "violation",
@@ -882,7 +873,6 @@ try {
   const failedHistory = (await state()).entries;
   const list = page.locator("#recorded-app .todo-list");
   const assertCanScroll = async () => {
-    console.log("Browser checks: checking read-only scrolling");
     assert.equal(
       await list.evaluate((el) => el.scrollHeight > el.clientHeight),
       true,
@@ -898,7 +888,6 @@ try {
       true,
     );
     await list.hover();
-    console.log("Browser checks: list hovered");
     await page.mouse.wheel(0, 300);
     await page.waitForFunction(
       () =>
@@ -911,16 +900,13 @@ try {
       el.scrollTop = 0;
     });
     await list.focus();
-    console.log("Browser checks: list focused");
     await page.keyboard.press("ArrowDown");
-    console.log("Browser checks: list keyboard event sent");
     await page.waitForFunction(
       () =>
         document
           .querySelector("#recorded-app")
-        .shadowRoot.querySelector(".todo-list").scrollTop > 0,
+          .shadowRoot.querySelector(".todo-list").scrollTop > 0,
     );
-    console.log("Browser checks: scrolling passed");
   };
   await assertCanScroll();
   const allState = failedHistory.findLastIndex(
@@ -932,25 +918,15 @@ try {
   assert.ok(allState >= 0);
   await scrub(allState);
   await assertCanScroll();
-  console.log("Browser checks: comparing preserved history");
   assert.deepEqual(
     (await state()).entries,
     failedHistory,
     "Scrolling does not change the recorded state",
   );
-  console.log("Browser checks: preserved history passed");
   // Simulate a static host mounting dist/ under a repository subpath.
-  console.log("Browser checks: installing nested route");
-  await page.route("**/nested/**", async (route) => {
-    const response = await route.fetch({
-      url: route.request().url().replace("/nested/", "/"),
-    });
-    await route.fulfill({ response });
+  await page.goto("http://127.0.0.1:4173/nested/", {
+    waitUntil: "domcontentloaded",
   });
-  console.log("Browser checks: nested route installed");
-  console.log("Browser checks: navigating nested mount");
-  await page.goto("http://127.0.0.1:4173/nested/", { waitUntil: "domcontentloaded" });
-  console.log("Browser checks: nested navigation", await page.locator(".tour-dialog").evaluate(el => el.open));
   await page.waitForFunction(
     () => window.bombadilSandbox?.getState().entries.length === 1,
   );
@@ -1151,7 +1127,6 @@ try {
   // Every lesson demonstrates a specific DOM-observed failure, then passes the
   // identical concrete steps after applying the repaired application module.
   await page.reload();
-  console.log("Browser checks: testing all six lessons");
   await idle();
   await page.setViewportSize({ width: 1440, height: 1100 });
   const picker = page.getByRole("combobox", { name: "Example", exact: true });
@@ -1393,9 +1368,7 @@ try {
   await page.evaluate(() => {
     void window.bombadilSandbox.runGuided();
   });
-  await page.waitForFunction(
-    () => window.bombadilSandbox.getState().playing,
-  );
+  await page.waitForFunction(() => window.bombadilSandbox.getState().playing);
   await picker.selectOption("addingPreservesFilter");
   await idle();
   await page.waitForTimeout(600);
