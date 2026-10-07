@@ -37,6 +37,7 @@ select {
   height: 48px;
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 0 20px;
   border-bottom: 1px solid var(--line);
 }
@@ -50,6 +51,23 @@ select {
 }
 .example-picker .tour-trigger {
   font-size: 13px;
+}
+.github-link {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+.github-link svg {
+  width: 20px;
+  height: 20px;
+}
+.github-link:hover {
+  background: #f0f5f0;
+  color: #39473e;
 }
 .tour-dialog {
   position: fixed;
@@ -511,6 +529,12 @@ select {
   }
 }
 @media (max-width: 650px) {
+  .masthead {
+    padding: 0 12px;
+  }
+  .example-picker {
+    gap: 8px;
+  }
   .workspace {
     grid-template-columns: 1fr;
   }
